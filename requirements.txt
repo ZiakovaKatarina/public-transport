@@ -1,0 +1,8 @@
+django
+django.tailwind
+dotenv
+cryptography
+mysqlclient
+requests
+pymysql
+polyline

@@ -1,0 +1,1051 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+
+<div class="mx-auto max-w-5xl text-center justify-center rounded-xl">
+    <p class="text-2xl w-full pb-3">Hľadanie spojenia</p>
+    <div class="inline-flex items-start gap-3">
+        <div class="self-start items-center gap-3 grid grid-cols-[50px_100px_180px]">
+            <p class="text-right">Odkiaľ:</p>
+            <input readonly type="text" id="zaciatocna"
+                class="text-xs col-span-2 cursor-not-allowed rounded focus:outline-none focus:ring-0 focus:border-gray-500">
+            <p class="text-right">Kam:</p>
+            <input readonly type="text" id="koncova"
+                class="text-xs col-span-2 cursor-not-allowed rounded focus:outline-none focus:ring-0 focus:border-gray-500">
+            <div id="buttons_for_locations" class="col-span-3 justify-self-center">
+                <button id="zmenit_start"
+                    class="btn btn-sm text-xs w-[120px] mr-2 bg-white outline-green-900 border-green-900 text-green-900 hover:bg-[#b1d3be] hover:outline-[#b1d3be] hover:border-[#b1d3be]">Zmeniť
+                    začiatok</button>
+                <button id="zmenit_koniec"
+                    class="btn btn-sm text-xs w-[120px] bg-white outline-red-800 border-red-800 text-red-800 hover:bg-[#ebb7b7] hover:outline-[#ebb7b7] hover:border-[#ebb7b7]">Zmeniť
+                    koniec</button>
+            </div>
+            <div id="buttons_for_current_locations" class="col-span-3 justify-self-center">
+                <button id="start_sucasna_poloha"
+                    class="btn text-xs w-[145px] mr-2 bg-white outline-green-900 border-green-900 text-green-900 hover:bg-[#b1d3be] hover:outline-[#b1d3be] hover:border-[#b1d3be]">
+                    Zvoliť súčasnú polohu ako začiatok</button>
+                <button id="koniec_sucasna_poloha"
+                    class="btn text-xs w-[145px] bg-white outline-red-800 border-red-800 text-red-800 hover:bg-[#ebb7b7] hover:outline-[#ebb7b7] hover:border-[#ebb7b7]">
+                    Zvoliť súčasnú polohu ako koniec</button>
+            </div>
+            <p id="text_pocet_prestupov" class="text-right text-sm col-span-2">Počet prestupov:</p>
+            <input type="number" value="5" id="max_prestupov" min="0" max="10"
+                class="w-20 text-sm rounded focus:outline-none focus:ring-0 focus:border-green-900">
+        <p id="text_datum" class="text-right text-sm col-span-2">Dátum cesty:</p>
+            <input type="date" id="datum_cesty"
+                class="w-[180px] text-sm rounded focus:outline-none focus:ring-0 focus:border-green-900">
+            <div id="nejaky_div" class="w-20 justify-self-end text-sm mr-8 col-span-2">
+                <select name="kedy" id="time_mode"
+                    class="rounded text-sm focus:outline-none focus:ring-0 focus:border-green-900">
+                    <option value="odchod">Odchod</option>
+                    <option value="prichod">Príchod</option>
+                </select>
+            </div>
+            <input type="time" id="time"
+                class=" w-28 rounded text-sm focus:outline-none focus:ring-0 focus:border-green-900">
+            <p id="text_vzdialenost_peso" class="text-right col-span-2">Vzdialenosť pešo:</p>
+            <div id="nastavit_vzdialenost" class="flex flex-row gap-2 items-center">
+                <input type="number" id="radius" min="0" value="500"
+                    class="w-28 rounded text-sm focus:outline-none focus:ring-0 focus:border-green-900">
+                <p id="metrov" class="text-sm ">metrov</p>
+            </div>
+            
+            <button id="podme_hladat" type="button"
+                class="mt-2 mb-1 justify-self-center text-nowrap col-span-3 w-[120px] h-[40px]
+                       btn btn-sm text-xs transition hover:bg-[#2c6542] hover:outline-[#2c6542] hover:border-[#2c6542]
+                       hover:text-yellow-300 bg-green-900 outline-green-900 border-green-900 text-white"
+                onclick="search_connections()">Vyhľadaj trasy</button>
+            
+        <div id="trasa" class="justify-center col-span-3 font-semibold text-red-800"></div>
+            
+            <div id="trasy"
+                class="border items-start border-gray-100 bg-gray-50 p-2 rounded h-[329px] w-[353px] col-span-3 overflow-auto">
+            </div>
+            <button id="id_nazad" onclick="chcem_vyhladat_spojenie()"
+                class="btn btn-sm text-xs w-[200px] h-[40px] mr-2 bg-white outline-green-900 border-green-900 text-green-900 hover:bg-[#b1d3be] hover:outline-[#b1d3be] hover:border-[#b1d3be]">Návrat
+                na vyhľadanie spojenia</button>
+        </div>
+
+        <div class="self-start">
+            <div class="border-solid h-[480px] border w-[600px] border-black rounded" id="map"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var mapElement = document.getElementById('map');
+    let selected_locations = [[null, null], [null, null]];
+    let start_marker = null;
+    let end_marker = null;
+    let change_start = false;
+    let change_end = false;
+    let vyhladavanie_trasy = false;
+    const date_input = document.getElementById('datum_cesty');
+    const time_input = document.getElementById('time');
+    const today = new Date().toISOString().split('T')[0];
+    const time = new Date().toTimeString().slice(0, 5);
+    date_input.value = today;
+    time_input.value = time;
+    const items = ["a", "b", "c"]
+    const search_connection_url = "{% url 'data_management:search_connections' %}"
+    const walking_distance_url = "{% url 'data_management:calculate_distance' %}"
+    const suradnice_mhd_trasy_url = "{% url 'data_management:suradnice_mhd_trasy' %}"
+    const zisti_adresu_url = "{% url 'data_management:zisti_adresu' %}"
+    let polyline = [];
+    let open_card = null;
+    let pesie_coordinates = [];
+    let search_controller = null;
+
+    const schovat = ["trasy", "id_nazad"];
+    for (let i = 0; i < schovat.length; i++) {
+        document.getElementById(schovat[i]).style.display = 'none'; // block
+    }
+
+    const start_sucasna_poloha = document.getElementById('start_sucasna_poloha');
+    start_sucasna_poloha.addEventListener('click', function () {
+        if (change_end) {
+            document.getElementById('zmenit_koniec').dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+            document.getElementById('zmenit_koniec').dispatchEvent(new MouseEvent('mouseleave', { bubbles: true, cancelable: true }));
+            change_end = false;
+            document.getElementById('zmenit_koniec').textContent = 'Zmeniť koniec';
+            typ_zmeny_koniec = 'zmenit_koniec';
+        }
+
+        if (change_start) {
+            document.getElementById('zmenit_start').dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+            document.getElementById('zmenit_start').dispatchEvent(new MouseEvent('mouseleave', { bubbles: true, cancelable: true }));
+            change_start = false;
+            document.getElementById('zmenit_start').textContent = 'Zmeniť začiatok';
+            typ_zmeny_start = 'zmenit_zaciatok';
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                
+                if (start_marker) {
+                    map.removeLayer(start_marker);
+                    start_marker = null;
+                }
+
+                start_marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+                const marker = start_marker.getElement();
+                if (marker) {
+                    marker.classList.add("green-marker");
+                }
+
+                start_marker.on('dragend', () => zisti_adresu('zaciatocna', start_marker));
+                zisti_adresu('zaciatocna', start_marker);
+            },
+            function(error) {
+                console.log(error.code);
+            },
+            {
+                enableHighAccuracy: true,
+                maximumAge: 50000,
+                setTimeout: 10000
+            }
+        );
+    });
+
+    const end_sucasna_poloha = document.getElementById('koniec_sucasna_poloha');
+    end_sucasna_poloha.addEventListener('click', function () {
+        if (change_end) {
+            document.getElementById('zmenit_koniec').dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+            document.getElementById('zmenit_koniec').dispatchEvent(new MouseEvent('mouseleave', { bubbles: true, cancelable: true }));
+            change_end = false;
+            document.getElementById('zmenit_koniec').textContent = 'Zmeniť koniec';
+            typ_zmeny_koniec = 'zmenit_koniec';
+        }
+
+        if (change_start) {
+            document.getElementById('zmenit_start').dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+            document.getElementById('zmenit_start').dispatchEvent(new MouseEvent('mouseleave', { bubbles: true, cancelable: true }));
+            change_start = false;
+            document.getElementById('zmenit_start').textContent = 'Zmeniť začiatok';
+            typ_zmeny_start = 'zmenit_zaciatok';
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                lat = position.coords.latitude;
+                lng = position.coords.longitude;
+
+                if (end_marker) {
+                    map.removeLayer(end_marker);
+                    end_marker = null;
+                }
+
+                end_marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+                const marker = end_marker.getElement();
+                if (marker) {
+                    marker.classList.add("red-marker");
+                }
+
+                end_marker.on('dragend', () => zisti_adresu('koncova', end_marker));
+                zisti_adresu('koncova', end_marker);
+            },
+            function(error) {
+                console.log(error.code);
+            },
+            {
+                enableHighAccuracy: true,
+                setTimeout: 10000
+            }
+        );
+
+        
+    });
+
+    const zmenit_start = document.getElementById('zmenit_start');
+    let aplikuj_zmeny_start = false;
+    let typ_zmeny_start = null;
+    zmenit_start.addEventListener('click', function () {
+        if (change_end) {
+            document.getElementById('zmenit_koniec').dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+            document.getElementById('zmenit_koniec').dispatchEvent(new MouseEvent('mouseleave', { bubbles: true, cancelable: true }));
+        }
+
+        change_start = !change_start;
+
+        aplikuj_zmeny_start = true;
+        if (change_start) {
+            zmenit_start.textContent = 'Koniec zmien';
+            typ_zmeny_start = 'koniec_zmien';
+        } else {
+            zmenit_start.textContent = 'Zmeniť začiatok';
+            typ_zmeny_start = 'zmenit_zaciatok';
+        }
+
+        if (start_marker && start_marker.dragging) {
+            if (change_start) {
+                start_marker.dragging.enable();
+            } else {
+                start_marker.dragging.disable();
+            }
+        }
+    });
+
+    zmenit_start.addEventListener("mouseleave", function () {
+        const btn = document.getElementById('zmenit_start');
+        if (aplikuj_zmeny_start) {
+            if (typ_zmeny_start === "koniec_zmien") {
+                btn.classList.remove("bg-white", "outline-green-900", "border-green-900", "hover:bg-[#b1d3be]", "hover:outline-[#b1d3be]", "hover:border-[#b1d3be]");
+                btn.classList.add("bg-[#b1d3be]", "outline-[#b1d3be]", "border-[#b1d3be]", "hover:bg-white", "hover:outline-green-900", "hover:border-green-900");
+            } else if (typ_zmeny_start === "zmenit_zaciatok") {
+                btn.classList.remove("bg-[#b1d3be]", "outline-[#b1d3be]", "border-[#b1d3be]", "hover:bg-white", "hover:outline-green-900", "hover:border-green-900");
+                btn.classList.add("bg-white", "outline-green-900", "border-green-900", "hover:bg-[#b1d3be]", "hover:outline-[#b1d3be]", "hover:border-[#b1d3be]");
+            }
+        }
+        aplikuj_zmeny_start = false;
+    });
+
+    const zmenit_koniec = document.getElementById('zmenit_koniec');
+    let aplikuj_zmeny_koniec = false;
+    let typ_zmeny_koniec = null;
+    zmenit_koniec.addEventListener('click', function () {
+        if (change_start) {
+            document.getElementById('zmenit_start').dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+            document.getElementById('zmenit_start').dispatchEvent(new MouseEvent('mouseleave', { bubbles: true, cancelable: true }));
+        }
+
+        change_end = !change_end;
+
+        aplikuj_zmeny_koniec = true;
+        if (change_end) {
+            zmenit_koniec.textContent = 'Koniec zmien';
+            typ_zmeny_koniec = 'koniec_zmien';
+        } else {
+            zmenit_koniec.textContent = 'Zmeniť koniec';
+            typ_zmeny_koniec = 'zmenit_koniec';
+        }
+
+        if (end_marker && end_marker.dragging) {
+            if (change_end) {
+                end_marker.dragging.enable();
+            } else {
+                end_marker.dragging.disable();
+            }
+        }
+    });
+
+    zmenit_koniec.addEventListener("mouseleave", function () {
+        const btn = document.getElementById('zmenit_koniec');
+        if (aplikuj_zmeny_koniec) {
+            if (typ_zmeny_koniec === "koniec_zmien") {
+                btn.classList.remove("bg-white", "outline-red-800", "border-red-800", "hover:bg-[#ebb7b7]", "hover:outline-[#ebb7b7]", "hover:border-[#ebb7b7]");
+                btn.classList.add("bg-[#ebb7b7]", "outline-[#ebb7b7]", "border-[#ebb7b7]", "hover:bg-white", "hover:outline-red-800", "hover:border-red-800");
+            } else if (typ_zmeny_koniec === "zmenit_koniec") {
+                btn.classList.remove("bg-[#ebb7b7]", "outline-[#ebb7b7]", "border-[#ebb7b7]", "hover:bg-white", "hover:outline-red-800", "hover:border-red-800");
+                btn.classList.add("bg-white", "outline-red-800", "border-red-800", "hover:bg-[#ebb7b7]", "hover:outline-[#ebb7b7]", "hover:border-[#ebb7b7]");
+            }
+        }
+        aplikuj_zmeny_koniec = false;
+    });
+
+    function chcem_vyhladat_spojenie() {
+        if (search_controller) {
+            search_controller.abort();
+            search_controller = null;
+        }
+
+        const schovat = ["trasy", "id_nazad"];
+        for (let i = 0; i < schovat.length; i++) {
+            document.getElementById(schovat[i]).style.display = 'none'; // block
+        }
+
+        const odkryt = ["buttons_for_locations", "buttons_for_current_locations", "text_datum", "datum_cesty", "max_prestupov", "nejaky_div", "time_mode", "text_pocet_prestupov", "time", "text_vzdialenost_peso", "nastavit_vzdialenost", "podme_hladat", "trasa"];
+        for (let i = 0; i < odkryt.length; i++) {
+            document.getElementById(odkryt[i]).style.display = odkryt[i] === "nastavit_vzdialenost" || odkryt[i] === "pesie_prechody" ? "flex" : "block";
+        }
+
+        document.getElementById('trasy').innerHTML = ``;
+        polyline.forEach(line => {
+            map.removeLayer(line);
+        });
+
+        polyline = [];
+        pesie_coordinates = [];
+
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    async function search_connections() {
+        if (search_controller) {
+            search_controller.abort();
+        }
+
+        search_controller = new AbortController();
+        const signal = search_controller.signal;
+
+        document.getElementById('trasy').innerHTML = ``;
+        if (change_start) {
+            document.getElementById('zmenit_start').dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+            document.getElementById('zmenit_start').dispatchEvent(new MouseEvent('mouseleave', { bubbles: true, cancelable: true }));
+        }
+
+        if (change_end) {
+            document.getElementById('zmenit_koniec').dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+            document.getElementById('zmenit_koniec').dispatchEvent(new MouseEvent('mouseleave', { bubbles: true, cancelable: true }));
+        }
+
+        const start = selected_locations[0];
+        const end = selected_locations[1];
+
+        document.getElementById('trasa').innerText = '';
+        if ((start[0] == null || start[1] == null) && (end[0] == null || end[1] == null)) {
+            document.getElementById('trasa').innerText = 'Prosím, vyberte začiatočnú a koncovú polohu.';
+            return;
+        } else if (start[0] == null || start[1] == null) {
+            document.getElementById('trasa').innerText = 'Prosím, vyberte začiatočnú polohu.';
+            return;
+        } else if (end[0] == null || end[1] == null) {
+            document.getElementById('trasa').innerText = 'Prosím, vyberte koncovú polohu.';
+            return;
+        } else if (start[0] == end[0] && start[1] == end[1]) {
+            document.getElementById('trasa').innerText = 'Začiatočná a koncová poloha sú rovnaké. Pre vyhľadanie spojenia zadajte iné polohy.';
+            return;
+        }
+
+        const schovat = ["buttons_for_locations", "buttons_for_current_locations", "datum_cesty", "max_prestupov", "nejaky_div", "text_datum", "time_mode", "text_pocet_prestupov", "time", "text_vzdialenost_peso", "nastavit_vzdialenost", "podme_hladat", "trasa"];
+        for (let i = 0; i < schovat.length; i++) {
+            document.getElementById(schovat[i]).style.display = 'none'; // block
+        }
+
+        const odkry = ["trasy", "id_nazad"];
+        for (let i = 0; i < odkry.length; i++) {
+            document.getElementById(odkry[i]).style.display = 'block'; // block
+        }
+        document.getElementById('trasy').innerHTML = `<p class="text-gray-600">Vyhľadávam spojenia...</p>`;
+
+        let r = document.getElementById('radius').value;
+        if (!r) r = 500;
+
+        const mode = document.getElementById("time_mode").value; // odchod / prichod
+
+        let time = document.getElementById('time').value;
+        if (!time) time = '00:00:00';
+
+        let pocet_prestupovani = document.getElementById('max_prestupov').value;
+        if (!pocet_prestupovani) pocet_prestupovani = 0;
+
+        let datum_cesty = document.getElementById('datum_cesty').value
+        if (!datum_cesty) {
+            const rok = new Date().getFullYear();
+            let mesiac = (new Date().getMonth() + 1);
+            if (mesiac >= 1 && mesiac <= 9) {
+                mesiac = "0" + mesiac
+            }
+            let den = new Date().getDate()
+            if (den >= 1 && den <= 9) {
+                den = "0" + den
+            }
+            datum_cesty = rok + "-" + mesiac + "-" + den;
+        }
+
+        try {
+            const response = await fetch(search_connection_url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    start: start,
+                    end: end,
+                    radius: r,
+                    time_mode: mode,
+                    pocet_prestupovani: pocet_prestupovani,
+                    time: time,
+                    datum_cesty: datum_cesty
+                }),
+                signal: signal,
+            });
+            document.getElementById('trasy').innerHTML = ``;
+            const data = await response.json();
+            if (!response.ok) {
+                console.error(data.error)
+                document.getElementById('trasy').innerText = `Nastala chyba pri počítaní trasy.`
+                return;
+            } else if (response.ok && data.no_connection) {
+                document.getElementById('trasy').innerHTML += `<p>${data.no_connection}</p>`;
+                return;
+            } else if (response.ok && data.direct_walk) {
+                let vzdialenost;
+                if (data.distance == radius) {
+                    vzdialenost = radius;
+                } else if (data.distance == 0) {
+                    vzdialenost = 0;
+                } else {
+                    vzdialenost = parseInt(data.distance) + 1
+                }
+                let vzdialenost_text;
+                switch (vzdialenost) {
+                    case 0:
+                        vzdialenost_text = "0 metrov";
+                        break;
+                    case 1:
+                        vzdialenost_text = vzdialenost + " meter";
+                        break;
+                    case 2:
+                    case 3:
+                    case 4:
+                        vzdialenost_text = vzdialenost + " metre";
+                        break;
+                    default:
+                        vzdialenost_text = vzdialenost + " metrov";
+                        break;
+                }
+
+                const casove_trvanie = data.distance == 0 ? 0 : parseInt(data.duration / 60) + 1;
+                let casove_trvanie_text;
+                switch (casove_trvanie) {
+                    case 0:
+                        casove_trvanie_text = "0 minút";
+                        break;
+                    case 1:
+                        casove_trvanie_text = casove_trvanie + " minútu";
+                        break;
+                    case 2:
+                    case 3:
+                    case 4:
+                        casove_trvanie_text = casove_trvanie + " minúty";
+                        break;
+                    default:
+                        casove_trvanie_text = casove_trvanie + " minút";
+                        break;
+                }
+
+                document.getElementById('trasy').innerHTML += `<p>Zvolený začiatok a koniec sú v pešej dostupnosti:<br>
+                    ${vzdialenost_text}, čo pešo zaberie ${casove_trvanie_text}</p>`;
+                polyline.forEach(line => {
+                    map.removeLayer(line);
+                });
+
+                polyline = [];
+
+                const pl = L.polyline(data.coords, { color: "black", weight: '2', dashArray: '20, 10' }).addTo(map);
+                polyline.push(pl);
+
+                const group = L.featureGroup(polyline);
+                map.fitBounds(group.getBounds());
+                return;
+            }
+
+            const filtrovane = data.filtrovane_cesty;
+            const zoznam_filtrovanych_tras = [];
+            for (let i = 0; i < filtrovane.length; i++) {
+                const pocet_prestupov = filtrovane[i][2];
+                const filtrovana_trasa = [];
+                filtrovana_trasa.push(pocet_prestupov);
+                
+                for (let j = 0; j < filtrovane[i][0].length; j += 1) {
+                    if (filtrovane[i][0][j] === "VIRTUAL_START" || filtrovane[i][0][j] === "VIRTUAL_END") {
+                        continue;
+                    }
+
+                    const trip_id = filtrovane[i][0][j][0];
+                    const duration = filtrovane[i][0][j + 1][0];
+                    const departure_time = filtrovane[i][0][j + 2][0];
+                    const route = filtrovane[i][0][j + 3][0];
+                    const next_stop = filtrovane[i][0][j + 4][0];
+                    j += 4;
+                    filtrovana_trasa.push([next_stop, departure_time, duration, route, trip_id]);
+                }
+
+                zoznam_filtrovanych_tras.push(filtrovana_trasa);
+            }
+
+
+            if (zoznam_filtrovanych_tras.length == 0) {
+                document.getElementById('trasy').innerHTML += `<p>Nenašli sa žiadne trasy, ktoré by vyhovovali zvoleným kritériám.</p>`;
+            } else {
+                window._trasy_cache = [...zoznam_filtrovanych_tras]
+
+                if (mode === "prichod") {
+                    zobraz_trasy_prichod(zoznam_filtrovanych_tras);
+                } else if (mode === "odchod") {
+                    zobraz_trasy_odchod(zoznam_filtrovanych_tras);
+                }
+            }
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                // console.log("Vyhľadávanie bolo zrušené používateľom.");
+            } else {
+                console.error(error);
+            }
+        } finally {
+            search_controller = null;
+        }
+    }
+
+    function calculate_duration(first, second) { // time difference... hh:mm:ss - hh:mm:ss
+        second = second.split(":")
+        first = first.split(":")
+
+        if (second.length == 2 && first.length == 2) {
+            h_2 = parseInt(second[0]) * 3600
+            m_2 = parseInt(second[1]) * 60
+            time_2 = h_2 + m_2
+
+            h_1 = parseInt(first[0]) * 3600
+            m_1 = parseInt(first[1]) * 60
+            time_1 = h_1 + m_1
+
+            if (time_1 > time_2) {
+                time_2 += 24 * 60 * 60
+            }
+
+            return time_2 - time_1;
+        } else if (second.length == 3 && first.length == 3) {
+            h_2 = parseInt(second[0]) * 3600
+            m_2 = parseInt(second[1]) * 60
+            s_2 = parseInt(second[2])
+            time_2 = h_2 + m_2 + s_2
+
+            h_1 = parseInt(first[0]) * 3600
+            m_1 = parseInt(first[1]) * 60
+            s_1 = parseInt(first[2])
+            time_1 = h_1 + m_1 + s_1
+
+            if (time_1 > time_2) {
+                time_2 += 24 * 60 * 60
+            }
+
+            return time_2 - time_1;
+        }
+        return 0;
+    }
+
+    function zobraz_trasy_odchod(zoznam_filtrovanych_tras) {
+        let zobraz = ''
+        for (let i = 0; i < zoznam_filtrovanych_tras.length; i++) {
+            zobraz += '<div class="border border-2 border-green-700 rounded text-left p-2 bg-green-50">'
+            trasa = zoznam_filtrovanych_tras[i]
+            zobraz += '<div class="flex justify-between items-center cursor-pointer p-1 text-sm" ' +
+                'onclick="rozbal_kartu(' + i + ')">';
+
+            zobraz += '<p>Celkový čas: '
+            cas_v_cieli = parseInt(trasa[trasa.length - 1][1]) + parseInt(trasa[trasa.length - 1][2]) + 60;
+            cas_start = parseInt(trasa[2][1]) - Math.ceil(trasa[1][2] / 60) * 60 // najneskorsi cas kedy musi vystartovat
+            
+            zaciatok = format_time(cas_start, true, true, false);
+            koniec = format_time(cas_v_cieli, true, true, false);
+
+            zobraz += zaciatok + ' – ' + koniec
+            zobraz += ' (<b class="font-semibold">' + format_time(calculate_duration(zaciatok, koniec), true, true, false) + '</b>)';
+            zobraz += '<br>';
+            zobraz += 'Prestupy: ' + trasa[0] + '</p>';
+            zobraz += '<p><svg xmlns="http://www.w3.org/2000/svg" id="sipka_' + i + '" class="transition-transform size-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">' +
+                '<path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />' +
+                '</svg></p>';
+            zobraz += '</div>';
+            zobraz += '<div id="detaily_' + i + '" class="p-1 hidden grid grid-cols-[30px_230px_40px]">';
+            let last_route = null;
+            let last_trip = null;
+            let last_stop = null;
+            let pesi = [];
+            for (let j = 1; j < trasa.length; j++) {
+                if (trasa[j][3] == "walk") {
+                    zobraz += '<p class="col-span-3">Pešo ';
+                    pesi.push(trasa[j][4]);
+
+                    const duration = Math.ceil(trasa[j][2] / 60);
+                    zobraz += duration;
+                    switch (duration) {
+                        case 1:
+                            zobraz += " minútu ";
+                            break;
+                        case 2:
+                        case 3:
+                        case 4:
+                            zobraz += " minúty ";
+                            break;
+                        default:
+                            zobraz += " minút ";
+                            break;
+                    }
+
+                    if (j == trasa.length - 1) {
+                        zobraz += " na cieľovú adresu.";
+                        break;
+                    } else {
+                        zobraz += ' na zastávku ' + trasa[j][0] + '.</p>';
+                        last_stop = trasa[j][0];
+                    }
+                } else if (trasa[j][4] != last_trip) {
+                    if (last_stop != null) {
+                        if ((trasa[j][3]).toString().length > 3) {
+                            zobraz += '<p class="col-span-3">' + trasa[j][3] + '</p>';
+                            zobraz += '<p></p>';
+                        } else {
+                            zobraz += '<p>' + trasa[j][3] + '</p>';
+                        }
+                        
+                        zobraz += '<p>' + last_stop + '</p>';
+                        zobraz += '<p>' + format_time(trasa[j][1], true, true, false) + '</p>';
+                        zobraz += '<p></p>';
+                        zobraz += '<p>' + trasa[j][0] + '</p>';
+                        zobraz += '<p>' + format_time(trasa[j][1] + trasa[j][2], true, true, false) + '</p>';
+                        last_stop = trasa[j][0];
+                    } else {
+                        zobraz += '<p>' + trasa[j][3] + '</p>';
+                        zobraz += '<p>' + trasa[j][0] + '</p>';
+                        zobraz += '<p>' + format_time(trasa[j][1] + trasa[j][2], true, true, false) + '</p>';
+                    }
+                } else if (trasa[j][4] == last_trip) {
+                    zobraz += '<p></p>';
+                    zobraz += '<p>' + trasa[j][0] + '</p>';
+                    zobraz += '<p>' + format_time(trasa[j][1] + trasa[j][2], true, true, false) + '</p>';
+                    last_stop = trasa[j][0];
+                }
+                last_route = trasa[j][3];
+                last_trip = trasa[j][4];
+            }
+            zobraz += '</div>';
+            zobraz += '</div>';
+            zobraz += '<div class="h-[6px]"></div>';
+            pesie_coordinates.push(pesi);
+        }
+        document.getElementById('trasy').innerHTML += `${zobraz}`;
+    }
+
+    function zobraz_trasy_prichod(zoznam_tras, zoznam_filtrovanych_tras) {
+        let zobraz = ''
+        for (let i = 0; i < zoznam_tras.length; i++) {
+            zobraz += '<div class="border border-2 border-green-700 rounded text-left p-2 bg-green-50">'
+            trasa = zoznam_tras[i]
+            zobraz += '<div class="flex justify-between items-center cursor-pointer p-1 text-sm" ' +
+                'onclick="rozbal_kartu(' + i + ')">';
+
+            zobraz += '<p>Celkový čas: ';
+            cas_v_cieli = parseInt(trasa[2][1]) + parseInt(trasa[2][2]) + parseInt(trasa[1][2]) + 60;
+            cas_start = 24 * 60 * 60 - parseInt(trasa[trasa.length - 1][1]) - parseInt(trasa[trasa.length - 1][2]) // najneskorsi cas kedy musi vystartovat
+            zaciatok = format_time(cas_start, true, true, false);
+            koniec = format_time(cas_v_cieli, true, true, false);
+
+            zobraz += zaciatok + ' – ' + koniec
+            zobraz += ' (<b class="font-semibold">' + format_time(calculate_duration(zaciatok, koniec), true, true, false) + '</b>)';
+            zobraz += '<br>';
+            zobraz += 'Prestupy: ' + trasa[0] + '</p>';
+            zobraz += '<p><svg xmlns="http://www.w3.org/2000/svg" id="sipka_' + i + '" class="transition-transform size-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">' +
+                '<path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />' +
+                '</svg></p>';
+            zobraz += '</div>';
+            zobraz += '<div id="detaily_' + i + '" class="p-1 hidden grid grid-cols-[30px_230px_40px]">';
+            let last_route = null;
+            let last_stop = null;
+            let pesi = [];
+            for (let j = trasa.length - 1; j >= 1; j--) {
+                if (trasa[j][3] == "walk") {
+                    zobraz += '<p class="col-span-3">Pešo ';
+                    pesi.push(trasa[j][4]);
+
+                    const duration = parseInt(trasa[j][2] / 60 + 1);
+                    zobraz += duration;
+                    switch (duration) {
+                        case 1:
+                            zobraz += " minútu ";
+                            break;
+                        case 2:
+                        case 3:
+                        case 4:
+                            zobraz += " minúty ";
+                            break;
+                        default:
+                            zobraz += " minút ";
+                            break;
+                    }
+
+                    if (j == 1) {
+                        zobraz += " na cieľovú adresu.";
+                        break;
+                    } else {
+                        zobraz += ' na zastávku ' + trasa[j-1][0] + '.</p>';
+                        last_stop = trasa[j-1][0];
+                    }
+                } else if (trasa[j][3] != last_route) {
+                    if (last_stop != null) {
+                        if ((trasa[j][3]).toString().length > 3) {
+                            zobraz += '<p class="col-span-3">' + trasa[j][3] + '</p>';
+                            zobraz += '<p></p>';
+                        } else {
+                            zobraz += '<p>' + trasa[j][3] + '</p>';
+                        }
+
+                        zobraz += '<p>' + last_stop + '</p>';
+                        zobraz += '<p>' + format_time(trasa[j][1], true, true, false) + '</p>';
+                        zobraz += '<p></p>';
+                        zobraz += '<p>' + trasa[j-1][0] + '</p>';
+                        zobraz += '<p>' + format_time(trasa[j][1] + trasa[j][2], true, true, false) + '</p>';
+                        last_stop = trasa[j-1][0];
+                    } else {
+                        zobraz += '<p>' + trasa[j][3] + '</p>';
+                        zobraz += '<p>' + trasa[j-1][0] + '</p>';
+                        zobraz += '<p>' + format_time(trasa[j][1] + trasa[j][2], true, true, false) + '</p>';
+                    }
+                } else if (trasa[j][3] == last_route) {
+                    zobraz += '<p></p>';
+                    zobraz += '<p>' + trasa[j-1][0] + '</p>';
+                    zobraz += '<p>' + format_time(trasa[j][1] + trasa[j][2], true, true, false) + '</p>';
+                    last_stop = trasa[j-1][0];
+                }
+                last_route = trasa[j][3];
+            }
+            zobraz += '</div>';
+            zobraz += '</div>';
+            zobraz += '<div class="h-[6px]"></div>';
+            pesie_coordinates.push(pesi);
+        }
+        document.getElementById('trasy').innerHTML += `${zobraz}`;
+    }
+
+    function format_time(time, include_hours, include_minutes, include_seconds) {
+        if (time >= 60 * 60 * 24) {
+            time = time - 60 * 60 * 24;
+        } else if (time < 0) {
+            time = time + 60 * 60 * 24;
+        }
+        const cas = seconds_to_time_format(time);
+        if (cas[0] >= 0 && cas[0] <= 9) {
+            cas[0] = "0" + cas[0];
+        }
+
+        if (cas[1] >= 0 && cas[1] <= 9) {
+            cas[1] = "0" + cas[1];
+        }
+
+        if (cas[2] >= 0 && cas[2] <= 9) {
+            cas[2] = "0" + cas[2];
+        }
+
+        if (include_hours) {
+            if (include_minutes) {
+                if (include_seconds) {
+                    return cas[0] + ":" + cas[1] + ":" + cas[2];
+                }
+                return cas[0] + ":" + cas[1]
+            }
+            return cas[0] + ":" + cas[1] + ":" + cas[2];
+        }
+
+        if (include_minutes) {
+            if (include_seconds) {
+                return cas[1] + ":" + cas[2];
+            }
+            return cas[1]
+        }
+
+        return cas[2];
+    }
+
+    function rozbal_kartu(index) {
+        const detailEl = document.getElementById("detaily_" + index);
+        const arrowEl = document.getElementById("sipka_" + index);
+
+        if (!detailEl || !arrowEl) {
+            console.log("Chýba karta alebo šípka pre index:", index);
+            return;
+        }
+
+        if (open_card === index) {
+            detailEl.classList.add("hidden");
+            arrowEl.classList.remove("rotate-180");
+            open_card = null;
+            polyline.forEach(line => map.removeLayer(line));
+            polyline = [];
+            return;
+        }
+
+        if (open_card !== null) {
+            const prevDetailEl = document.getElementById("detaily_" + open_card);
+            const prevArrowEl = document.getElementById("sipka_" + open_card);
+
+            if (prevDetailEl) prevDetailEl.classList.add("hidden");
+            if (prevArrowEl) prevArrowEl.classList.remove("rotate-180");
+
+            open_card = null;
+            polyline.forEach(line => map.removeLayer(line));
+            polyline = [];
+        }
+
+        detailEl.classList.remove("hidden");
+        arrowEl.classList.add("rotate-180");
+        open_card = index;
+
+        const mode = document.getElementById("time_mode").value;
+        switch (mode) {
+            case "odchod":
+                zobraz_trasu(index, window._trasy_cache[index], "odchod");
+                break;
+            case "prichod":
+                zobraz_trasu(index, window._trasy_cache[index], "prichod");
+                break;
+        }
+    }
+
+    async function zobraz_trasu(index, trasa, mode) {
+        let segments = []
+        var start_stop = null;
+        var end_stop;
+        var trip = null;
+        var pridane = false;
+        for (let i = 1; i < trasa.length; i++) {
+            if (start_stop == null) {
+                start_stop = trasa[i][0];
+                continue;
+            }
+
+            if (String(trasa[i][0]).toUpperCase() === 'V') {
+                if (!pridane) {
+                    if (end_stop == null) {
+                        end_stop = trasa[trasa.length - 2][0];
+                    } else if (start_stop == null) {
+                        start_stop = trasa[2][0];
+                    }
+                    if (mode === "odchod") {
+                        segments.push({ "start_stop": start_stop, "end_stop": end_stop, "trip": trip });    
+                    } else if (mode === "prichod") {
+                        segments.push({ "start_stop": end_stop, "end_stop": start_stop, "trip": trip });  
+                    }
+                }
+                pridane = true;
+            }
+
+            if (trip == null && trasa[i][3] != "walk") {
+                trip = trasa[i][4];
+                pridane = false;
+                continue;
+            } else if (trip == null && trasa[i][3] === "walk") {
+                start_stop = null;
+                continue;
+            } else if (trip != null && trasa[i][4] == trip) {
+                end_stop = trasa[i][0];
+                pridane = false;
+                continue;
+            } else if (trip != null && trasa[i][4] != trip) {
+                if (!pridane) {
+                    if (end_stop == null) {
+                        end_stop = trasa[i-1][0];
+                    }
+                    if (mode === "odchod") {
+                        segments.push({ "start_stop": start_stop, "end_stop": end_stop, "trip": trip });    
+                    } else if (mode === "prichod") {
+                        segments.push({ "start_stop": end_stop, "end_stop": start_stop, "trip": trip });  
+                    }
+                }
+
+                pridane = true;
+                start_stop = trasa[i-1][0];
+                end_stop = trasa[i][0];
+                trip = trasa[i][4];
+                pridane = false;
+            }
+        }
+
+        const response = await fetch(suradnice_mhd_trasy_url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                segments
+            }),
+        });
+
+        if (!response.ok) {
+            const text = await response.text();
+            console.error("suradnice_mhd_trasy error:", response.status, text);
+            return;
+        }
+
+        const data = await response.json();
+
+        polyline.forEach(line => {
+            map.removeLayer(line);
+        });
+
+        polyline = [];
+
+        for (let i = 0; i < data.segments.length; i++) {
+            const segment = data.segments[i];
+            const farba = "#" + segment[0].replace("#", "");
+            const coords = [];
+            for (let j = 1; j < segment.length; j++) {
+                coords.push(segment[j]);
+            }
+            const pl = L.polyline(coords, { color: farba, weight: '3' }).addTo(map);
+            polyline.push(pl);
+        }
+
+        for (let k = 0; k < pesie_coordinates[index].length; k++) {
+            const pl = L.polyline(pesie_coordinates[index][k], { color: "black", weight: '2', dashArray: '20, 10' }).addTo(map);
+            polyline.push(pl);
+        }
+
+        if (polyline.length > 0) {
+            const group = L.featureGroup(polyline);
+            map.fitBounds(group.getBounds());
+        }
+    }
+
+    function seconds_to_time_format(seconds) {
+        const sekundy = Math.round(seconds % 60);
+        seconds = seconds - sekundy;
+        seconds = Math.round(seconds / 60);
+        const minutes = Math.round(seconds % 60);
+        seconds = seconds - minutes;
+        seconds = Math.round(seconds / 60);
+        const hours = Math.round(seconds % 60);
+        return [hours, minutes, sekundy]
+    }
+
+    async function zisti_adresu(ktora, marker) {
+        const lat = marker.getLatLng().lat;
+        const lng = marker.getLatLng().lng;
+        if (ktora == "zaciatocna") {
+            selected_locations[0][0] = lat;
+            selected_locations[0][1] = lng;
+        } else if (ktora == "koncova") {
+            selected_locations[1][0] = lat;
+            selected_locations[1][1] = lng;
+        }
+
+        element_id = ktora === "zaciatocna" ? "zaciatocna" : "koncova"
+        const input = document.getElementById(element_id);
+        const response = await fetch(zisti_adresu_url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                lat: lat,
+                lng: lng
+            })
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+            console.error(data.error)
+            return;
+        } else {
+            if (input) {
+                if (data != null && data.address != null) {
+                    input.value = `${data.address}`;
+                } else {
+                    input.value = `latitude ${Math.round(lat * 100) / 100}, longitude ${Math.round(lng * 100) / 100}`;
+                }
+            }
+            return;
+        }
+        
+    }
+
+    if (mapElement != null) {
+        try {
+            var map = L.map('map').setView([49.211, 18.740], 13);
+            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            }).addTo(map);
+
+            var geocoder = L.Control.geocoder().addTo(map);
+            document.querySelector('.leaflet-control-geocoder input').setAttribute('name', 'map-search');
+
+            map.on("click", function (e) {
+                if (change_end) {
+                    if (end_marker) {
+                        map.removeLayer(end_marker);
+                        end_marker = null;
+                    }
+
+                    end_marker = L.marker(e.latlng, { draggable: true }).addTo(map);
+
+                    const marker = end_marker.getElement();
+                    if (marker) {
+                        marker.classList.add("red-marker");
+                    }
+
+                    end_marker.on('dragend', () => zisti_adresu('koncova', end_marker));
+                    zisti_adresu('koncova', end_marker);
+                }
+
+                if (change_start) {
+                    if (start_marker) {
+                        map.removeLayer(start_marker);
+                        start_marker = null;
+                    }
+
+                    start_marker = L.marker(e.latlng, { draggable: true }).addTo(map);
+                    const marker = start_marker.getElement();
+                    if (marker) {
+                        marker.classList.add("green-marker");
+                    }
+
+                    start_marker.on('dragend', () => zisti_adresu('zaciatocna', start_marker));
+                    zisti_adresu('zaciatocna', start_marker);
+                }
+            });
+        } catch (err) {
+            console.error(err);
+        }
+    }
+</script>
+{% endblock %}

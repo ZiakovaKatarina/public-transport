@@ -1,0 +1,27 @@
+input[type="time"] {
+    color-scheme: light;
+}
+
+input[type="time"]::-webkit-calendar-picker-indicator {
+    opacity: 1;
+    display: block;
+    cursor: pointer;
+}
+
+input[type="date"] {
+    color-scheme: light;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+    opacity: 1;
+    display: block;
+    cursor: pointer;
+}
+
+.red-marker {
+    filter: hue-rotate(140deg);
+}
+
+.green-marker {
+    filter: hue-rotate(260deg);
+}

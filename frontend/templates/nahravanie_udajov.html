@@ -1,0 +1,286 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+<div class="mx-auto max-w-5xl rounded-xl">
+    <p class="text-2xl w-full pb-3 text-center">Nahrávanie údajov</p>
+    <p class="text-center mx-16 mb-6">Nahrávanie údajov do databázy je možné dvoma spôsobmi. Buď nahratím každého povinného súboru zvlášť, alebo nahratím ZIP súboru, ktorý bude obsahovať všetky potrebné súbory v hlavnom priečinku.
+     Všetky povinné súbory sú vypísané v ľavej časti tejto stránky.</p>
+    <div class="grid grid-cols-[650px_275px] mt-2 justify-center gap-[10px]">
+        <div class="grid grid-cols-[330px_320px]">
+            <div class="w-320px">
+                <h3 class="tracking-tight uppercase mb-2">Povinné subory</h3>
+                <div class="flex gap-4 items-center mb-1">
+                    <p>agency.txt</p>
+                    <input type="file" id="agency_file" accept=".txt" class="file:btn-sm file:text-xs file:rounded-md 
+                file:hover:outline-green-900 file:hover:border-green-900 file:text-green-900
+            file:bg-[#b1d3be] file:mr-2 file:shadow-none file:outline-[#b1d3be] file:border-[#b1d3be]">
+                </div>
+                <div class="flex gap-2 items-center mb-1">
+
+                    <p>routes.txt</p>
+                    <input type="file" id="routes_file" accept=".txt" class="file:btn-sm file:text-xs file:rounded-md 
+                file:hover:outline-green-900 file:hover:border-green-900 file:text-green-900
+                file:bg-[#b1d3be] file:mr-2 file:shadow-none file:outline-[#b1d3be] file:border-[#b1d3be]">
+                </div>
+                <div class="flex gap-2 items-center mb-1">
+                    <p>trips.txt</p>
+                    <input type="file" id="trips_file" accept=".txt" class="file:btn-sm file:text-xs file:rounded-md 
+                file:hover:outline-green-900 file:hover:border-green-900 file:text-green-900
+            file:bg-[#b1d3be] file:mr-2 file:shadow-none file:outline-[#b1d3be] file:border-[#b1d3be]">
+                </div>
+                <div class="flex gap-2 items-center mb-1">
+                    <p>stop_times.txt</p>
+                    <input type="file" id="stop_times_file" accept=".txt" class="file:btn-sm file:text-xs file:rounded-md 
+                file:hover:outline-green-900 file:hover:border-green-900 file:text-green-900
+            file:bg-[#b1d3be] file:mr-2 file:shadow-none file:outline-[#b1d3be] file:border-[#b1d3be]">
+                </div>
+
+                <div class="flex gap-2 items-center mb-1">
+                    <p>stops.txt</p>
+                    <input type="file" id="stops_file" accept=".txt" class="file:btn-sm file:text-xs file:rounded-md 
+                file:hover:outline-green-900 file:hover:border-green-900 file:text-green-900
+            file:bg-[#b1d3be] file:mr-2 file:shadow-none file:outline-[#b1d3be] file:border-[#b1d3be]">
+                </div>
+
+                
+
+            </div>
+
+            <div class="w-320px">
+                <h3 class="tracking-tight uppercase mb-2">Povinne voliteľné súbory</h3>
+                <div class="flex gap-2 items-center mb-1">
+                    <p>calendar.txt</p>
+                    <input type="file" id="calendar_file" accept=".txt" class="file:btn-sm file:text-xs file:rounded-md 
+                file:hover:outline-green-900 file:hover:border-green-900 file:text-green-900
+            file:bg-[#b1d3be] file:mr-2 file:shadow-none file:outline-[#b1d3be] file:border-[#b1d3be]">
+                </div>
+                <div class="flex gap-2 items-center mb-1">
+                    <p>calendar_dates.txt</p>
+                    <input type="file" id="calendar_dates_file" accept=".txt" class="file:btn-sm file:text-xs file:rounded-md 
+                file:hover:outline-green-900 file:hover:border-green-900 file:text-green-900
+            file:bg-[#b1d3be] file:mr-2 file:shadow-none file:outline-[#b1d3be] file:border-[#b1d3be]">
+                </div>
+
+
+                <h3 class="tracking-tight uppercase mb-2 mt-4">Voliteľné súbory:</h3>
+                <div class="flex gap-2 items-center mb-1">
+                    <p>shapes.txt</p>
+                    <input type="file" id="shapes_file" accept=".txt" class="file:btn-sm file:text-xs file:rounded-md 
+                file:hover:outline-green-900 file:hover:border-green-900 file:text-green-900
+            file:bg-[#b1d3be] file:mr-2 file:shadow-none file:outline-[#b1d3be] file:border-[#b1d3be]">
+                </div>
+
+
+            </div>
+
+
+        <div class="col-span-2">
+            <p class="text-gray-600 text-xs italic mt-5">Z povinných súborov je potrebné nahrať <span
+                class="font-semibold">všetky vypísané</span> súbory.<br>
+            Z každej skupiny súborov, ktoré sú označené ako povinne voliteľné, je vždy potrebné zadať <span
+                class="font-semibold">minimálne jeden</span> súbor.<br>
+            Zo skupiny voliteľných súborov nie je potrebné zadať <span class="font-semibold">ani jeden</span> súbor.
+        </p>
+            <div class="w-full flex justify-end pr-[10px]">
+                <button type="button" class="mt-3 justify-center w-[150px] h-[40px] items-center
+                                    btn btn-sm text-xs transition hover:bg-[#2c6542] hover:outline-[#2c6542] hover:border-[#2c6542]
+                            hover:text-yellow-300 bg-green-900 outline-green-900 border-green-900 text-white
+                            " onclick="load_files()">Načítaj TXT súbory</button>
+            </div>
+
+
+        </div><p id="warnings_txt" class="font-semibold mt-3 mb-1.5 col-span-2 h-16" style="color: red;"></p>
+
+        </div>
+        <div class="border-l border-slate-400 pl-4 pr-[30px]">
+            <h3 class="tracking-tight uppercase mb-2">ZIP súbor:</h3>
+            <div class="flex gap-2 items-center mb-1">
+                <p>GTFS.zip</p>
+                <input type="file" id="gtfs" accept=".zip" class="file:btn-sm file:text-xs file:rounded-md 
+                file:hover:outline-green-900 file:hover:border-green-900 file:text-green-900
+            file:bg-[#b1d3be] file:mr-2 file:shadow-none file:outline-[#b1d3be] file:border-[#b1d3be]">
+            </div>
+
+            <div class="w-full flex justify-end mt-auto">
+                <button type="button" class="ml-auto mt-3 justify-center w-[150px] h-[40px] items-center
+                                    btn btn-sm text-xs transition hover:bg-[#2c6542] hover:outline-[#2c6542] hover:border-[#2c6542]
+                            hover:text-yellow-300 bg-green-900 outline-green-900 border-green-900 text-white
+                            " onclick="load_zip_file()">Načítaj ZIP súbory</button>
+            </div>
+            <p id="warnings_zip" class="font-semibold mt-3" style="color: red;"></p>
+        </div>
+    </div>
+    
+    
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+        <script>
+            const load_multiple_files_url = "{% url 'data_management:load_files' %}"
+
+            function getCookie(name) {
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    const cookies = document.cookie.split(';');
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i].trim();
+                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+            return cookieValue;
+        }
+
+        async function load_zip_file() {
+            
+            let warn = false;
+            document.getElementById('warnings_txt').innerHTML = '';
+            document.getElementById('warnings_zip').innerHTML = '';
+
+            const zip_file = document.getElementById('gtfs');
+            if (!zip_file.files.length) {
+                document.getElementById('warnings_zip').innerHTML += 'Vyber GTFS.zip súbor.';
+                warn = true;
+            }
+
+            if (warn) {
+                return;
+            }
+
+            const form_data = new FormData();
+            let loaded_files = []
+
+            try {
+const jszip = new JSZip();
+            const zip = await jszip.loadAsync(zip_file.files[0]);
+            const filenames = Object.keys(zip.files);
+            for (let index = 0; index < filenames.length; index++) {
+const filename = filenames[index];
+            const file = zip.files[filename];
+            if (file.dir) {
+                continue;
+            };
+            if (["agency.txt", "routes.txt", "trips.txt","stop_times.txt",
+            "calendar.txt","calendar_dates.txt","stops.txt","shapes.txt","locations.geojson"].includes(filename)) {
+                const content  = await file.async('blob');
+                form_data.append(file.name.replace('.txt', '_file').replace('.geojson', '_file'), content);
+                loaded_files.push(file.name);
+            }
+            }
+            let count_povinne = 0;
+            let obsahuje_calendar = false;
+            
+            loaded_files.forEach(element => {
+                if (["agency.txt", "routes.txt", "trips.txt","stop_times.txt", "stops.txt"].includes(element)) {
+                    count_povinne++;
+                    return;
+                } else if (["calendar.txt","calendar_dates.txt"].includes(element)) {
+                    obsahuje_calendar = true;
+                    return;
+                }
+            });
+
+            if (count_povinne === 5 && obsahuje_calendar) {
+                const response = await fetch(load_multiple_files_url, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: form_data,
+            });
+            } else {
+                document.getElementById('warnings_zip').innerHTML += 'Vybraný ZIP súbor neobsahoval všetky povinné súbory.';
+            }
+
+            } catch (err) {
+                console.error(err)
+            }
+        }
+
+        async function load_files() {
+            let warn = false;
+            document.getElementById('warnings_txt').innerHTML = '';
+            document.getElementById('warnings_zip').innerHTML = '';
+
+            const agency_file = document.getElementById('agency_file');
+            if (!agency_file.files.length) {
+                document.getElementById('warnings_txt').innerHTML += 'Vyber agency_file.txt súbor. ';
+                warn = true;
+            }
+
+            const routes_file = document.getElementById('routes_file');
+            if (!routes_file.files.length) {
+                document.getElementById('warnings_txt').innerHTML += 'Vyber routes_file.txt súbor. ';
+                warn = true;
+            }
+
+            const trips_file = document.getElementById('trips_file');
+            if (!trips_file.files.length) {
+                document.getElementById('warnings_txt').innerHTML += 'Vyber trips_file.txt súbor. ';
+                warn = true;
+            }
+
+            const stop_times_file = document.getElementById('stop_times_file');
+            if (!stop_times_file.files.length) {
+                document.getElementById('warnings_txt').innerHTML += 'Vyber stop_times_file.txt súbor. ';
+                warn = true;
+            }
+
+            const calendar_file = document.getElementById('calendar_file');
+            const calendar_dates_file = document.getElementById('calendar_dates_file');
+            if (!calendar_file.files.length && !calendar_dates_file.files.length) {
+                document.getElementById('warnings_txt').innerHTML += 'Vyber aspoň jeden zo súborov ' +
+                    'calendar_file.txt a calendar_dates_file.txt. ';
+                warn = true;
+            }
+
+            const stops_file = document.getElementById('stops_file');
+            const locations_file = document.getElementById('locations_file');
+            if (!stops_file.files.length && !locations_file.files.length) {
+                document.getElementById('warnings_txt').innerHTML += 'Vyber aspoň jeden zo súborov ' +
+                    'stops_file.txt a locations_file.json.';
+                warn = true;
+            }
+
+            if (warn) {
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('agency_file', agency_file.files[0]);
+            formData.append('routes_file', routes_file.files[0]);
+            formData.append('trips_file', trips_file.files[0]);
+            formData.append('stop_times_file', stop_times_file.files[0]);
+
+            if (calendar_file.files.length) {
+                formData.append('calendar_file', calendar_file.files[0]);
+            }
+
+            if (calendar_dates_file.files.length) {
+                formData.append('calendar_dates_file', calendar_dates_file.files[0]);
+            }
+
+            if (stops_file.files.length) {
+                formData.append('stops_file', stops_file.files[0]);
+            }
+
+            if (locations_file.files.length) {
+                formData.append('locations_file', locations_file.files[0]);
+            }
+
+            const shapes_file = document.getElementById('shapes_file');
+            if (shapes_file.files.length) {
+                formData.append('shapes_file', shapes_file.files[0]);
+            }
+
+            const response = await fetch(load_multiple_files_url, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: formData,
+            });
+        }
+    </script>
+    {% endblock %}

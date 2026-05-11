@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+
+<div class="mx-auto max-w-md text-center justify-center rounded-xl">
+<p class="text-2xl w-full pb-3">Prihlásenie</p>
+
+{% if user.is_authenticated %}
+<div>
+    <div>
+<p class="max-w-md text-center justify-center mx-auto mb-4">Už ste prihlásený ako <span class="font-semibold text-green-900">{{ user.username }}</span>.</p>
+    </div>
+    
+    <div class="gap-2 flex flex-row max-w-md text-center justify-center mx-auto">
+<a href="{% url 'nahravanie_udajov' %}" class="btn btn-sm btn-outline bg-white outline-green-900 border-green-900 text-green-900 hover:text-green-900 hover:bg-[#b1d3be] hover:outline-[#b1d3be] hover:border-[#b1d3be]">Pokračovať na nahrávanie údajov</a>
+    <form action="{% url 'odhlasenie' %}" method="POST">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-sm btn-outline bg-white outline-red-800 border-red-800 text-red-800 hover:text-red-800 hover:bg-[#ebb7b7] hover:outline-[#ebb7b7] hover:border-[#ebb7b7]">Odhlásiť sa</button>
+    </form>
+    </div>
+</div>
+{% else %}
+<p class="text-left pb-3">Pre správu údajov je nevyhnutné sa prihlásiť...</p>
+<form action="{% url 'prihlasenie' %}" method="POST">
+    {% csrf_token %}
+
+    <div class="gap-3 items-center justify-center grid grid-cols-[50px_250px_20px]">
+    <p>Meno:</p>
+    <label for="">
+        <input type="text" name="username" required class="w-full rounded focus:outline-none focus:ring-0 focus:border-green-900">
+    </label>
+    <p></p>
+    <p>Heslo:</p>
+    <label for="">
+        <input id="password" type="password" name="password" required
+            class="w-full rounded focus:outline-none focus:ring-0 focus:border-green-900 focus:stroke-green-900">
+    </label>
+    <button id="togglePassword" type="button" class="text-gray-500 hover:text-green-900">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+        </svg>
+
+    </button>
+    <div class="col-span-3 text-center justify-center">
+        <button type="submit" class="btn transition hover:bg-[#2c6542] hover:outline-[#2c6542] hover:border-[#2c6542]
+         hover:text-yellow-300 bg-green-900 outline-green-900 border-green-900 text-white">Prihlásiť sa</button>
+    </div>
+</div>
+</form>
+
+
+
+
+    {% if form.errors %}
+    <p class="text-red-800 mt-3 font-semibold">Nesprávne meno alebo heslo.</p>
+    {% endif %}
+{% endif %}
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const passwordInput = document.getElementById('password');
+        const toggleButton = document.getElementById('togglePassword');
+        toggleButton.addEventListener('click', function () {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            if (type === 'password') {
+                toggleButton.innerHTML =
+                    '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">' +
+                    '<path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />' +
+                    '<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />' +
+                    '</svg>'
+            } else if (type === 'text') {
+                toggleButton.innerHTML =
+                    '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">' +
+                    '<path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />' +
+                    '</svg>'
+            }
+        });
+    });
+</script>
+{% endblock %}

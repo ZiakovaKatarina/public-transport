@@ -1,0 +1,68 @@
+{% load static tailwind_tags %}
+
+<!DOCTYPE html>
+<html lang="sk">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cestovné poriadky</title>
+
+    <meta name="referrer" content="no-referrer-when-downgrade">
+
+    <link rel="stylesheet" href="{% static 'styles/style.css' %}" />
+    {% tailwind_css %}
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+    <link rel="icon" type="image/svg+xml" href="{% static 'images/favicon.svg' %}" />
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+</head>
+
+<body class="bg-white text-black">
+<header class="fixed top-0 left-0 w-full bg-green-900 text-white shadow-md z-50">
+    <div class="mx-auto flex h-20 w-full max-w-5xl items-center justify-between px-4">
+        <p class="text-xl font-semibold tracking-tight uppercase whitespace-nowrap">Cestovné poriadky</p>
+        <nav class="ml-6">
+            <div class="flex items-center gap-2 text-sm">
+                <a href="{% url 'index' %}" class="rounded-md px-3 py-2 transition hover:bg-white/10 hover:text-yellow-300">Hľadanie spojenia</a>
+                {% if user.is_authenticated %}
+                <a href="{% url 'nahravanie_udajov' %}" class="rounded-md px-3 py-2 transition hover:bg-white/10 hover:text-yellow-300">Nahrávanie údajov</a>
+                <div class="border-l border-white/30 ml-2 mr-1 h-8"></div>
+                <div class="flex items-center gap-3">
+                    <div class="gap-1 flex flex-row items-center justify-center leading-tight center">
+                        <p class="text-slate-300">Prihlásený ako:</p>
+                        <p class="text-yellow-200">{{ user.username }}</p>
+                    </div>
+                
+                <form action="{% url 'odhlasenie' %}" method="POST">
+                    {% csrf_token %}
+                    <button type="submit" class="rounded-md px-3 py-2 transition hover:bg-white/10 hover:text-yellow-300">
+                        Odhlásiť sa
+                    </button>
+                </form>
+                {% else %}
+                <a href="{% url 'prihlasenie' %}" class="rounded-md px-3 py-2 transition hover:bg-white/10 hover:text-yellow-300">Prihlásenie</a>
+                {% endif %}
+            </div>
+                </div>
+                
+        </nav>
+    </div>
+</header>
+
+<main class="mx-auto h-screen w-full max-w-5xl px-4 pt-24 pb-20 text-sm">
+    {% block content %}
+    {% endblock %}
+</main>
+
+<footer class="fixed bottom-0 left-0 w-full border-t border-slate-200 bg-slate-100 text-gray-700 z-50">
+    <div class="mx-auto flex w-full max-w-7xl flex-col items-center text-center gap-1 px-4 py-4 text-xs">
+        <p>Systém vyhľadávania spojení</p>
+        <p class="text-gray-500">Aktualizované dňa {% now "d. m. Y" %} o {% now "H:i" %}</p>
+    </div>
+</footer>
+</body>
+</html>
